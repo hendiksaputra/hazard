@@ -64,8 +64,8 @@
                         <td>{{ $subadmin->name }}</td>
                         <td>{{ $subadmin->email }}</td>
                         <td>{{ $subadmin->type }}</td>
-                        <td>{{ $subadmin->department_name }}</td>
-                        <td>{{ $subadmin->position_name }}</td>
+                        <td>{{ $subadmin->department_name ?? 'No Department' }}</td>
+                        <td>{{ $subadmin->position_name ?? 'No Position' }}</td>
                         <td>{{ $subadmin->project }}</td>
                         <td>{{ date("F j, Y, g:i a", strtotime($subadmin->created_at)); }}</td>
                         <td class="text-center">

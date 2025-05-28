@@ -103,6 +103,7 @@ class HazardReportController extends Controller
         $request->validate([
             // 'project_code' => 'required',
             'description' => 'required',
+            'admin_id' => 'required',
         ]);
 
         $hazard = new HazardReport();

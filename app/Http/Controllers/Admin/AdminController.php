@@ -178,9 +178,9 @@ class AdminController extends Controller
     public function subadmins()
     {
         Session::put('page', 'subadmins');
-        // get all subadmins join with departments, positions 
-        $subadmins = Admin::join('departments', 'admins.department_id', 'departments.id')
-                            ->join('positions', 'admins.position_id', 'positions.id')
+        // get all subadmins with left join to show all admins even if department/position is null
+        $subadmins = Admin::leftJoin('departments', 'admins.department_id', 'departments.id')
+                            ->leftJoin('positions', 'admins.position_id', 'positions.id')
                             ->select('admins.*', 'departments.department_name', 'positions.position_name')
                             ->where('type', 'subadmin')->get();
         return view ('admin.subadmins.subadmins')->with(compact('subadmins'));
