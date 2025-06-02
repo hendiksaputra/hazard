@@ -66,9 +66,10 @@
 <!-- AdminLTE for demo purposes -->
 {{-- <script src="{{ url('admin/js/demo.js') }}"></script> --}}
 
-
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
+@if(Request::is('admin/dashboard'))
 <script src="{{ url('admin/js/pages/dashboard2.js') }}"></script>
+@endif
 <!-- Custon js  -->
 <script src="{{ url('admin/js/custom.js') }}"></script>
 

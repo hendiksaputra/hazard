@@ -99,7 +99,9 @@
                                     <img src="{{ asset('document_upload/' . $attachment->filename) }}" 
                                          alt="Preview" 
                                          style="width: 60px; height: 60px; object-fit: cover; border: 1px solid #ddd; cursor: pointer;" 
-                                         onclick="openImageModal('{{ asset('document_upload/' . $attachment->filename) }}', '{{ $attachment->filename }}')">
+                                         class="zoom-image-trigger"
+                                         data-image-src="{{ asset('document_upload/' . $attachment->filename) }}"
+                                         data-filename="{{ $attachment->filename }}">
                                   @else
                                     <i class="fas fa-file" style="font-size: 30px; color: #6c757d;"></i>
                                     <br><small>{{ strtoupper($extension) }} File</small>
@@ -160,7 +162,9 @@
                                   <img src="{{ asset('document_upload/' . $response->filename) }}" 
                                        alt="Preview" 
                                        style="width: 60px; height: 60px; object-fit: cover; border: 1px solid #ddd; cursor: pointer;" 
-                                       onclick="openImageModal('{{ asset('document_upload/' . $response->filename) }}', '{{ $response->filename }}')">
+                                       class="zoom-image-trigger"
+                                       data-image-src="{{ asset('document_upload/' . $response->filename) }}"
+                                       data-filename="{{ $response->filename }}">
                                 @else
                                   <i class="fas fa-file" style="font-size: 30px; color: #6c757d;"></i>
                                   <br><small>{{ strtoupper($extension) }} File</small>
@@ -215,13 +219,13 @@
       </div>
       <div class="modal-body text-center" style="overflow: auto; max-height: 70vh;">
         <div class="zoom-controls mb-3">
-          <button type="button" class="btn btn-sm btn-secondary" id="zoomOutBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="changeZoom(-0.25)">
             <i class="fas fa-search-minus"></i> Zoom Out
           </button>
-          <button type="button" class="btn btn-sm btn-secondary" id="resetZoomBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="resetImageZoom()">
             <i class="fas fa-expand-arrows-alt"></i> Reset
           </button>
-          <button type="button" class="btn btn-sm btn-secondary" id="zoomInBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="changeZoom(0.25)">
             <i class="fas fa-search-plus"></i> Zoom In
           </button>
           <span class="ml-3 text-muted" id="zoomLevel">100%</span>
@@ -241,107 +245,142 @@
 </div>
 
 <script>
-// Global variables
-var currentZoom = 1;
-var zoomStep = 0.25;
-var minZoom = 0.25;
-var maxZoom = 5;
+// Simple global variables
+var imageZoom = 1;
 
-// Wait for document to be fully loaded
-$(document).ready(function() {
-    console.log('Initializing zoom functionality...');
-    
-    // Zoom In Button
-    $('#zoomInBtn').on('click', function() {
-        console.log('Zoom In button clicked');
-        if (currentZoom < maxZoom) {
-            currentZoom += zoomStep;
-            updateZoomDisplay();
-        }
-    });
-    
-    // Zoom Out Button
-    $('#zoomOutBtn').on('click', function() {
-        console.log('Zoom Out button clicked');
-        if (currentZoom > minZoom) {
-            currentZoom -= zoomStep;
-            updateZoomDisplay();
-        }
-    });
-    
-    // Reset Zoom Button
-    $('#resetZoomBtn').on('click', function() {
-        console.log('Reset Zoom button clicked');
-        currentZoom = 1;
-        updateZoomDisplay();
-    });
-    
-    // Update zoom display
-    function updateZoomDisplay() {
-        var image = $('#zoomImage');
-        var zoomLevel = $('#zoomLevel');
-        
-        if (image.length && zoomLevel.length) {
-            image.css('transform', 'scale(' + currentZoom + ')');
-            zoomLevel.text(Math.round(currentZoom * 100) + '%');
-            console.log('Zoom updated to: ' + currentZoom);
-        }
-    }
-    
-    // Mouse wheel zoom
-    $('#zoomImage').on('wheel', function(e) {
-        e.preventDefault();
-        console.log('Mouse wheel detected');
-        
-        if (e.originalEvent.deltaY < 0) {
-            // Zoom in
-            if (currentZoom < maxZoom) {
-                currentZoom += zoomStep;
-                updateZoomDisplay();
-            }
-        } else {
-            // Zoom out
-            if (currentZoom > minZoom) {
-                currentZoom -= zoomStep;
-                updateZoomDisplay();
-            }
-        }
-    });
-    
-    // Double click to reset
-    $('#zoomImage').on('dblclick', function() {
-        console.log('Double click detected');
-        currentZoom = 1;
-        updateZoomDisplay();
-    });
-    
-    console.log('Zoom functionality initialized');
-});
-
-// Global function to open modal
+// Simple function to open modal
 function openImageModal(imageSrc, filename) {
-    console.log('Opening modal with image: ' + imageSrc);
+    console.log('Opening image modal: ' + imageSrc);
     
-    var modal = $('#imageZoomModal');
-    var image = $('#zoomImage');
-    var downloadLink = $('#downloadLink');
-    var modalTitle = $('#imageZoomModalLabel');
-    
-    // Set image and reset zoom
-    image.attr('src', imageSrc);
-    downloadLink.attr('href', imageSrc);
-    downloadLink.attr('download', filename);
-    modalTitle.text('Image Preview - ' + filename);
+    // Set image source
+    document.getElementById('zoomImage').src = imageSrc;
+    document.getElementById('downloadLink').href = imageSrc;
+    document.getElementById('downloadLink').download = filename;
+    document.getElementById('imageZoomModalLabel').textContent = 'Image Preview - ' + filename;
     
     // Reset zoom
-    currentZoom = 1;
-    image.css('transform', 'scale(1)');
-    $('#zoomLevel').text('100%');
+    imageZoom = 1;
+    document.getElementById('zoomImage').style.transform = 'scale(1)';
+    document.getElementById('zoomLevel').textContent = '100%';
     
-    // Show modal
-    modal.modal('show');
+    // Show modal using Bootstrap directly
+    var modal = document.getElementById('imageZoomModal');
+    if (modal) {
+        // Try jQuery first, fallback to Bootstrap
+        if (typeof $ !== 'undefined' && $.fn.modal) {
+            $('#imageZoomModal').modal('show');
+        } else if (typeof bootstrap !== 'undefined') {
+            var bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        } else {
+            // Fallback - just show the modal div
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+    }
+}
+
+// Simple function to change zoom
+function changeZoom(delta) {
+    console.log('Changing zoom by: ' + delta);
     
-    console.log('Modal opened');
+    var newZoom = imageZoom + delta;
+    
+    // Limit zoom range
+    if (newZoom < 0.25) newZoom = 0.25;
+    if (newZoom > 5) newZoom = 5;
+    
+    imageZoom = newZoom;
+    
+    // Apply zoom
+    var image = document.getElementById('zoomImage');
+    var zoomLevel = document.getElementById('zoomLevel');
+    
+    if (image && zoomLevel) {
+        image.style.transform = 'scale(' + imageZoom + ')';
+        zoomLevel.textContent = Math.round(imageZoom * 100) + '%';
+        console.log('Zoom applied: ' + imageZoom);
+    }
+}
+
+// Simple function to reset zoom
+function resetImageZoom() {
+    console.log('Resetting zoom');
+    imageZoom = 1;
+    document.getElementById('zoomImage').style.transform = 'scale(1)';
+    document.getElementById('zoomLevel').textContent = '100%';
+}
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM READY ===');
+    
+    // Test if modal exists
+    var modal = document.getElementById('imageZoomModal');
+    console.log('Modal exists:', modal !== null);
+    
+    if (modal) {
+        console.log('Modal found:', modal);
+    } else {
+        console.error('Modal NOT found!');
+    }
+    
+    // Test if zoom elements exist
+    var zoomImage = document.getElementById('zoomImage');
+    var zoomLevel = document.getElementById('zoomLevel');
+    
+    console.log('Zoom elements:');
+    console.log('- zoomImage:', zoomImage);
+    console.log('- zoomLevel:', zoomLevel);
+    
+    // Add click event listeners for zoom image triggers
+    var zoomTriggers = document.querySelectorAll('.zoom-image-trigger');
+    console.log('Zoom triggers found:', zoomTriggers.length);
+    
+    for (var i = 0; i < zoomTriggers.length; i++) {
+        zoomTriggers[i].addEventListener('click', function() {
+            var imageSrc = this.getAttribute('data-image-src');
+            var filename = this.getAttribute('data-filename');
+            console.log('Zoom trigger clicked - Image:', imageSrc, 'Filename:', filename);
+            openImageModal(imageSrc, filename);
+        });
+    }
+    
+    // Add close modal functionality
+    var closeButtons = document.querySelectorAll('[data-dismiss="modal"]');
+    console.log('Close buttons found:', closeButtons.length);
+    
+    for (var i = 0; i < closeButtons.length; i++) {
+        closeButtons[i].addEventListener('click', function() {
+            console.log('Close button clicked');
+            var modal = document.getElementById('imageZoomModal');
+            if (modal) {
+                if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#imageZoomModal').modal('hide');
+                } else {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    
+                    // Remove backdrop
+                    var backdrop = document.getElementById('modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                }
+            }
+        });
+    }
+    
+    console.log('=== INITIALIZATION COMPLETE ===');
+});
+
+// Fallback for jQuery ready if available
+if (typeof $ !== 'undefined') {
+    $(document).ready(function() {
+        console.log('jQuery ready - additional functionality loaded');
+    });
 }
 </script>
 

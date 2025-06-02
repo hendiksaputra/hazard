@@ -71,8 +71,8 @@
                         <td>{{ $page['id'] }}</td>
                         <td>{{ $page['nomor'] }}</td>
                         <td>{{ $page['project_code'] }}</td>
-                        <td>{{ $page['admin_name'] }}</td>
-                        <td>{{ $page['department_name'] }}</td>
+                        <td>{{ $page['admin_name'] ?? 'No Admin' }}</td>
+                        <td>{{ $page['department_name'] ?? 'No Department' }}</td>
                         <td class="text-right">{{ date("F j, Y, g:i a", strtotime($page['created_at'])); }}</td>
                         <td>{{ $page['category'] }}</td>
                         <td>{{ $page['location'] }}</td>

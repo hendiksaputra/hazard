@@ -44,13 +44,18 @@ class HazardReportController extends Controller
             id,'module'=>'hazard-reports'])->first()->toArray();
         }
 
-        $hazardReports = HazardReport::join('admins', 'hazard_reports.admin_id', '=', 'admins.id')
-                                        ->join('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
-                                        ->join('departments', 'hazard_reports.department_id', '=', 'departments.id')
+        $hazardReports = HazardReport::leftJoin('admins', 'hazard_reports.admin_id', '=', 'admins.id')
+                                        ->leftJoin('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
+                                        ->leftJoin('departments', 'hazard_reports.department_id', '=', 'departments.id')
                                         ->select('hazard_reports.*', 'admins.name as admin_name', 'danger_types.name as danger_type_name', 'departments.department_name as department_name')
-                                        ->where('hazard_reports.status', 'pending') // Tambahkan nama tabel sebelum kolom status
-                                        ->orderBy('created_at', 'desc')
-                                        ->get();
+                                        ->where('hazard_reports.status', 'pending');
+
+        // Filter berdasarkan project jika bukan admin
+        if ($admin->type !== 'admin') {
+            $hazardReports = $hazardReports->where('hazard_reports.project_code', $admin->project);
+        }
+
+        $hazardReports = $hazardReports->orderBy('hazard_reports.created_at', 'desc')->get();
         
         return view('admin.hazard_reports.index')->with(compact('hazardReports', 'hazardReportModule'));
     }
@@ -104,6 +109,7 @@ class HazardReportController extends Controller
             // 'project_code' => 'required',
             'description' => 'required',
             'admin_id' => 'required',
+            'file_upload.*' => 'nullable|file|max:1024', // Max 1MB per file (1024 KB)
         ]);
 
         $hazard = new HazardReport();
@@ -121,6 +127,11 @@ class HazardReportController extends Controller
 
         if ($request->file_upload) {
             foreach ($request->file_upload as $file) {
+                // Additional file size check (1MB = 1 * 1024 * 1024 bytes)
+                if ($file->getSize() > 1 * 1024 * 1024) {
+                    return redirect()->back()->withErrors(['file_upload' => 'Each file size must not exceed 1MB.'])->withInput();
+                }
+                
                 $filename = rand() . '_' . $file->getClientOriginalName();
                 $file->move(public_path('document_upload'), $filename);
 
@@ -154,6 +165,8 @@ class HazardReportController extends Controller
         $attachments = ReportAttachment::where('hazard_report_id', $id)->get();
         $admins = Admin::where('project', Auth::guard('admin')->user()->project)->get();
 
+        // Debug: uncomment line below to see attachments data
+        // dd($attachments);
 
         return view('admin.hazard_reports.edit_hazard_report')->with(compact('title', 'hazardReport', 'projects', 'departments', 'danger_types','attachments', 'admins'));
        
@@ -210,6 +223,7 @@ class HazardReportController extends Controller
             'project_code' => 'required',
             'admin_id' => 'required',
             'description' => 'required',
+            'file_upload.*' => 'nullable|file|max:1024', // Max 1MB per file (1024 KB)
         ]);
 
         $hazard = HazardReport::find($id);
@@ -245,6 +259,11 @@ class HazardReportController extends Controller
          // Save new file uploads
     if ($request->file_upload) {
         foreach ($request->file_upload as $file) {
+            // Additional file size check (5MB = 5 * 1024 * 1024 bytes)
+            if ($file->getSize() > 1 * 1024 * 1024) {
+                return redirect()->back()->withErrors(['file_upload' => 'Each file size must not exceed 1MB.'])->withInput();
+            }
+            
             $filename = rand() . '_' . $file->getClientOriginalName();
             $file->move(public_path('document_upload'), $filename);
 
@@ -313,17 +332,23 @@ class HazardReportController extends Controller
 
     public function show_closed($id)
     {
-        $hazard = HazardReport::join('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
-                                ->join('departments', 'hazard_reports.department_id', '=', 'departments.id')
-                                ->join('admins', 'hazard_reports.created_by', '=', 'admins.id')
+        $hazard = HazardReport::leftJoin('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
+                                ->leftJoin('departments', 'hazard_reports.department_id', '=', 'departments.id')
+                                ->leftJoin('admins', 'hazard_reports.created_by', '=', 'admins.id')
                                 ->select('hazard_reports.*', 'danger_types.name as danger_type_name', 'departments.department_name as department_name', 'admins.name as created_by')
                                 ->where('hazard_reports.id', $id)
                                 ->first();
-        $attachments = ReportAttachment::join('admins', 'report_attachments.uploaded_by', '=', 'admins.id')
+
+        // Check if hazard report exists
+        if (!$hazard) {
+            return redirect('admin/hazard-closed-index')->with('error_message', 'Hazard Report not found');
+        }
+
+        $attachments = ReportAttachment::leftJoin('admins', 'report_attachments.uploaded_by', '=', 'admins.id')
                         ->select('report_attachments.*', 'admins.name as uploaded_by_name')
                         ->where('hazard_report_id', $id)->get();
 
-        $responses = HazardResponse::join('admins', 'hazard_responses.comment_by', '=', 'admins.id')
+        $responses = HazardResponse::leftJoin('admins', 'hazard_responses.comment_by', '=', 'admins.id')
         ->select('hazard_responses.*', 'admins.name as created_by_name')
         ->where('hazard_report_id', $id)->get();
         
@@ -333,18 +358,23 @@ class HazardReportController extends Controller
 
     public function show($id)
     {
-
-        $hazard = HazardReport::join('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
-                                ->join('departments', 'hazard_reports.department_id', '=', 'departments.id')
-                                ->join('admins', 'hazard_reports.created_by', '=', 'admins.id')
+        $hazard = HazardReport::leftJoin('danger_types', 'hazard_reports.danger_type_id', '=', 'danger_types.id')
+                                ->leftJoin('departments', 'hazard_reports.department_id', '=', 'departments.id')
+                                ->leftJoin('admins', 'hazard_reports.created_by', '=', 'admins.id')
                                 ->select('hazard_reports.*', 'danger_types.name as danger_type_name', 'departments.department_name as department_name', 'admins.name as created_by')
                                 ->where('hazard_reports.id', $id)
                                 ->first();
-        $attachments = ReportAttachment::join('admins', 'report_attachments.uploaded_by', '=', 'admins.id')
+
+        // Check if hazard report exists
+        if (!$hazard) {
+            return redirect('admin/hazard-reports')->with('error_message', 'Hazard Report not found');
+        }
+
+        $attachments = ReportAttachment::leftJoin('admins', 'report_attachments.uploaded_by', '=', 'admins.id')
                         ->select('report_attachments.*', 'admins.name as uploaded_by_name')
                         ->where('hazard_report_id', $id)->get();
 
-        $responses = HazardResponse::join('admins', 'hazard_responses.comment_by', '=', 'admins.id')
+        $responses = HazardResponse::leftJoin('admins', 'hazard_responses.comment_by', '=', 'admins.id')
         ->select('hazard_responses.*', 'admins.name as created_by_name')
         ->where('hazard_report_id', $id)
         ->get();

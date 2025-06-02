@@ -123,7 +123,9 @@
                                     <img src="{{ asset('document_upload/' . $attachment->filename) }}" 
                                          alt="Preview" 
                                          style="width: 60px; height: 60px; object-fit: cover; border: 1px solid #ddd; cursor: pointer;" 
-                                         onclick="openImageModal('{{ asset('document_upload/' . $attachment->filename) }}', '{{ $attachment->filename }}')">
+                                         class="zoom-image-trigger"
+                                         data-image-src="{{ asset('document_upload/' . $attachment->filename) }}"
+                                         data-filename="{{ $attachment->filename }}">
                                   @else
                                     <i class="fas fa-file" style="font-size: 30px; color: #6c757d;"></i>
                                     <br><small>{{ strtoupper($extension) }} File</small>
@@ -189,7 +191,9 @@
                                   <img src="{{ asset('document_upload/' . $response->filename) }}" 
                                        alt="Preview" 
                                        style="width: 60px; height: 60px; object-fit: cover; border: 1px solid #ddd; cursor: pointer;" 
-                                       onclick="openImageModal('{{ asset('document_upload/' . $response->filename) }}', '{{ $response->filename }}')">
+                                       class="zoom-image-trigger"
+                                       data-image-src="{{ asset('document_upload/' . $response->filename) }}"
+                                       data-filename="{{ $response->filename }}">
                                 @else
                                   <i class="fas fa-file" style="font-size: 30px; color: #6c757d;"></i>
                                   <br><small>{{ strtoupper($extension) }} File</small>
@@ -312,13 +316,13 @@
       </div>
       <div class="modal-body text-center" style="overflow: auto; max-height: 70vh;">
         <div class="zoom-controls mb-3">
-          <button type="button" class="btn btn-sm btn-secondary" id="zoomOutBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="changeZoom(-0.25)">
             <i class="fas fa-search-minus"></i> Zoom Out
           </button>
-          <button type="button" class="btn btn-sm btn-secondary" id="resetZoomBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="resetImageZoom()">
             <i class="fas fa-expand-arrows-alt"></i> Reset
           </button>
-          <button type="button" class="btn btn-sm btn-secondary" id="zoomInBtn">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="changeZoom(0.25)">
             <i class="fas fa-search-plus"></i> Zoom In
           </button>
           <span class="ml-3 text-muted" id="zoomLevel">100%</span>
@@ -338,107 +342,169 @@
 </div>
 
 <script>
-// Global variables
-var currentZoom = 1;
-var zoomStep = 0.25;
-var minZoom = 0.25;
-var maxZoom = 5;
+// Debug: Test if script is loaded
+console.log('=== ZOOM SCRIPT LOADED ===');
 
-// Wait for document to be fully loaded
-$(document).ready(function() {
-    console.log('Initializing zoom functionality...');
-    
-    // Zoom In Button
-    $('#zoomInBtn').on('click', function() {
-        console.log('Zoom In button clicked');
-        if (currentZoom < maxZoom) {
-            currentZoom += zoomStep;
-            updateZoomDisplay();
-        }
-    });
-    
-    // Zoom Out Button
-    $('#zoomOutBtn').on('click', function() {
-        console.log('Zoom Out button clicked');
-        if (currentZoom > minZoom) {
-            currentZoom -= zoomStep;
-            updateZoomDisplay();
-        }
-    });
-    
-    // Reset Zoom Button
-    $('#resetZoomBtn').on('click', function() {
-        console.log('Reset Zoom button clicked');
-        currentZoom = 1;
-        updateZoomDisplay();
-    });
-    
-    // Update zoom display
-    function updateZoomDisplay() {
-        var image = $('#zoomImage');
-        var zoomLevel = $('#zoomLevel');
-        
-        if (image.length && zoomLevel.length) {
-            image.css('transform', 'scale(' + currentZoom + ')');
-            zoomLevel.text(Math.round(currentZoom * 100) + '%');
-            console.log('Zoom updated to: ' + currentZoom);
-        }
-    }
-    
-    // Mouse wheel zoom
-    $('#zoomImage').on('wheel', function(e) {
-        e.preventDefault();
-        console.log('Mouse wheel detected');
-        
-        if (e.originalEvent.deltaY < 0) {
-            // Zoom in
-            if (currentZoom < maxZoom) {
-                currentZoom += zoomStep;
-                updateZoomDisplay();
-            }
-        } else {
-            // Zoom out
-            if (currentZoom > minZoom) {
-                currentZoom -= zoomStep;
-                updateZoomDisplay();
-            }
-        }
-    });
-    
-    // Double click to reset
-    $('#zoomImage').on('dblclick', function() {
-        console.log('Double click detected');
-        currentZoom = 1;
-        updateZoomDisplay();
-    });
-    
-    console.log('Zoom functionality initialized');
-});
+// Simple global variables
+var imageZoom = 1;
 
-// Global function to open modal
+// Test function
+function testFunction() {
+    console.log('Test function called!');
+    alert('Test function works!');
+}
+
+// Simple function to open modal
 function openImageModal(imageSrc, filename) {
-    console.log('Opening modal with image: ' + imageSrc);
+    console.log('=== OPENING IMAGE MODAL ===');
+    console.log('Image source:', imageSrc);
+    console.log('Filename:', filename);
     
-    var modal = $('#imageZoomModal');
-    var image = $('#zoomImage');
-    var downloadLink = $('#downloadLink');
-    var modalTitle = $('#imageZoomModalLabel');
+    try {
+        // Set image source
+        var zoomImage = document.getElementById('zoomImage');
+        var downloadLink = document.getElementById('downloadLink');
+        var modalTitle = document.getElementById('imageZoomModalLabel');
+        var zoomLevel = document.getElementById('zoomLevel');
+        
+        console.log('Elements found:');
+        console.log('- zoomImage:', zoomImage);
+        console.log('- downloadLink:', downloadLink);
+        console.log('- modalTitle:', modalTitle);
+        console.log('- zoomLevel:', zoomLevel);
+        
+        if (zoomImage) {
+            zoomImage.src = imageSrc;
+            console.log('Image src set');
+        }
+        
+        if (downloadLink) {
+            downloadLink.href = imageSrc;
+            downloadLink.download = filename;
+            console.log('Download link set');
+        }
+        
+        if (modalTitle) {
+            modalTitle.textContent = 'Image Preview - ' + filename;
+            console.log('Modal title set');
+        }
+        
+        // Reset zoom
+        imageZoom = 1;
+        if (zoomImage) {
+            zoomImage.style.transform = 'scale(1)';
+            console.log('Zoom reset to 1');
+        }
+        
+        if (zoomLevel) {
+            zoomLevel.textContent = '100%';
+            console.log('Zoom level text set');
+        }
+        
+        // Show modal
+        var modal = document.getElementById('imageZoomModal');
+        console.log('Modal element:', modal);
+        
+        if (modal) {
+            // Try jQuery first
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                console.log('Using jQuery to show modal');
+                $('#imageZoomModal').modal('show');
+            } else {
+                console.log('Using manual method to show modal');
+                modal.style.display = 'block';
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // Add backdrop
+                var backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'modal-backdrop';
+                document.body.appendChild(backdrop);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error in openImageModal:', error);
+    }
+}
+
+// Simple function to change zoom
+function changeZoom(delta) {
+    console.log('=== CHANGE ZOOM CALLED ===');
+    console.log('Delta:', delta);
+    console.log('Current zoom before:', imageZoom);
     
-    // Set image and reset zoom
-    image.attr('src', imageSrc);
-    downloadLink.attr('href', imageSrc);
-    downloadLink.attr('download', filename);
-    modalTitle.text('Image Preview - ' + filename);
+    try {
+        var newZoom = imageZoom + delta;
+        console.log('New zoom calculated:', newZoom);
+        
+        // Limit zoom range
+        if (newZoom < 0.25) {
+            newZoom = 0.25;
+            console.log('Zoom limited to minimum: 0.25');
+        }
+        if (newZoom > 5) {
+            newZoom = 5;
+            console.log('Zoom limited to maximum: 5');
+        }
+        
+        imageZoom = newZoom;
+        console.log('Image zoom set to:', imageZoom);
+        
+        // Apply zoom
+        var image = document.getElementById('zoomImage');
+        var zoomLevel = document.getElementById('zoomLevel');
+        
+        console.log('Elements for zoom:');
+        console.log('- image:', image);
+        console.log('- zoomLevel:', zoomLevel);
+        
+        if (image) {
+            var scaleValue = 'scale(' + imageZoom + ')';
+            image.style.transform = scaleValue;
+            console.log('Transform applied:', scaleValue);
+            console.log('Image style transform:', image.style.transform);
+        } else {
+            console.error('Image element not found!');
+        }
+        
+        if (zoomLevel) {
+            var percentText = Math.round(imageZoom * 100) + '%';
+            zoomLevel.textContent = percentText;
+            console.log('Zoom level text set to:', percentText);
+        } else {
+            console.error('Zoom level element not found!');
+        }
+        
+    } catch (error) {
+        console.error('Error in changeZoom:', error);
+    }
+}
+
+// Simple function to reset zoom
+function resetImageZoom() {
+    console.log('=== RESET ZOOM CALLED ===');
     
-    // Reset zoom
-    currentZoom = 1;
-    image.css('transform', 'scale(1)');
-    $('#zoomLevel').text('100%');
-    
-    // Show modal
-    modal.modal('show');
-    
-    console.log('Modal opened');
+    try {
+        imageZoom = 1;
+        
+        var image = document.getElementById('zoomImage');
+        var zoomLevel = document.getElementById('zoomLevel');
+        
+        if (image) {
+            image.style.transform = 'scale(1)';
+            console.log('Zoom reset - transform applied: scale(1)');
+        }
+        
+        if (zoomLevel) {
+            zoomLevel.textContent = '100%';
+            console.log('Zoom level reset to 100%');
+        }
+        
+    } catch (error) {
+        console.error('Error in resetImageZoom:', error);
+    }
 }
 
 // Client-side file size validation
@@ -458,12 +524,94 @@ function validateFileSize(input) {
     return true;
 }
 
-// Add file validation to all file inputs
-$(document).ready(function() {
-    $('input[type="file"]').on('change', function() {
-        validateFileSize(this);
-    });
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM READY ===');
+    
+    // Test if modal exists
+    var modal = document.getElementById('imageZoomModal');
+    console.log('Modal exists:', modal !== null);
+    
+    if (modal) {
+        console.log('Modal found:', modal);
+    } else {
+        console.error('Modal NOT found!');
+    }
+    
+    // Test if zoom elements exist
+    var zoomImage = document.getElementById('zoomImage');
+    var zoomLevel = document.getElementById('zoomLevel');
+    
+    console.log('Zoom elements:');
+    console.log('- zoomImage:', zoomImage);
+    console.log('- zoomLevel:', zoomLevel);
+    
+    // Add click event listeners for zoom image triggers
+    var zoomTriggers = document.querySelectorAll('.zoom-image-trigger');
+    console.log('Zoom triggers found:', zoomTriggers.length);
+    
+    for (var i = 0; i < zoomTriggers.length; i++) {
+        zoomTriggers[i].addEventListener('click', function() {
+            var imageSrc = this.getAttribute('data-image-src');
+            var filename = this.getAttribute('data-filename');
+            console.log('Zoom trigger clicked - Image:', imageSrc, 'Filename:', filename);
+            openImageModal(imageSrc, filename);
+        });
+    }
+    
+    // Add file validation to all file inputs
+    var fileInputs = document.querySelectorAll('input[type="file"]');
+    console.log('File inputs found:', fileInputs.length);
+    
+    for (var i = 0; i < fileInputs.length; i++) {
+        fileInputs[i].addEventListener('change', function() {
+            validateFileSize(this);
+        });
+    }
+    
+    // Add close modal functionality
+    var closeButtons = document.querySelectorAll('[data-dismiss="modal"]');
+    console.log('Close buttons found:', closeButtons.length);
+    
+    for (var i = 0; i < closeButtons.length; i++) {
+        closeButtons[i].addEventListener('click', function() {
+            console.log('Close button clicked');
+            var modal = document.getElementById('imageZoomModal');
+            if (modal) {
+                if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#imageZoomModal').modal('hide');
+                } else {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    
+                    // Remove backdrop
+                    var backdrop = document.getElementById('modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                }
+            }
+        });
+    }
+    
+    console.log('=== INITIALIZATION COMPLETE ===');
 });
+
+// Fallback for jQuery ready if available
+if (typeof $ !== 'undefined') {
+    $(document).ready(function() {
+        console.log('jQuery ready - additional functionality loaded');
+    });
+}
+
+// Global test - call this from console to test
+window.testZoom = function() {
+    console.log('Testing zoom functionality...');
+    changeZoom(0.25);
+};
+
+console.log('=== SCRIPT END ===');
 </script>
 
 @endsection

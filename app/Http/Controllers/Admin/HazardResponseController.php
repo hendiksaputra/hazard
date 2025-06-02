@@ -40,10 +40,17 @@ class HazardResponseController extends Controller
         $data->validate([
             'hazard_report_id' => 'required',
             'comment' => 'required',
+            'file_upload' => 'nullable|file|max:1024', // Max 1MB (1024 KB)
         ]);
 
         if ($data->hasFile('file_upload')) {
             $file = $data->file('file_upload');
+            
+            // Additional file size check (1MB = 1 * 1024 * 1024 bytes)
+            if ($file->getSize() > 1 * 1024 * 1024) {
+                return redirect()->back()->withErrors(['file_upload' => 'File size must not exceed 1MB.']);
+            }
+            
             $filename = rand() . '_' . $file->getClientOriginalName();
             $file->move(public_path('document_upload'), $filename);
         } else {

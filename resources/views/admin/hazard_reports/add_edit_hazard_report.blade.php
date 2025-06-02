@@ -157,7 +157,11 @@
                     <!-- textarea -->
                     <div class="form-group">
                       <label>Attachment</label>
-                      <input type="file" name="file_upload[]" id="file" class="form-control" multiple>
+                      <input type="file" name="file_upload[]" id="file" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                      <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Maximum file size: 1MB per file. 
+                        Supported formats: Images, PDF, Word, Excel, Text files.
+                      </small>
                     </div>
                     
                   </div>

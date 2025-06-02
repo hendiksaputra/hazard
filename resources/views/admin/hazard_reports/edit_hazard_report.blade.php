@@ -140,7 +140,11 @@
                     <div class="col-sm-12">
                         <div class="form-group">
                             <label>Upload New Attachments</label>
-                            <input type="file" name="file_upload[]" id="file" class="form-control" multiple>
+                            <input type="file" name="file_upload[]" id="file" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                            <small class="form-text text-muted">
+                              <i class="fas fa-info-circle"></i> Maximum file size: 1MB per file. 
+                              Supported formats: Images, PDF, Word, Excel, Text files.
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -148,14 +152,28 @@
                   <div class="row mb-3">
                     <div class="col-sm-12">
                         <label>Existing Attachments</label>
-                        <div class="d-flex flex-wrap">
-                            @foreach($attachments as $attachment)
-                                <div class="attachment-item me-3 mb-3">
-                                    <img src="{{ asset('document_upload/' . $attachment->filename) }}" alt="Attachment" style="width: 100px; height: 100px;">
-                                    <input type="checkbox" name="delete_attachments[]" value="{{ $attachment->id }}"> Delete
-                                </div>
-                            @endforeach
-                        </div>
+                        @if($attachments && $attachments->count() > 0)
+                            <div class="d-flex flex-wrap">
+                                @foreach($attachments as $attachment)
+                                    <div class="attachment-item me-3 mb-3">
+                                        @if(file_exists(public_path('document_upload/' . $attachment->filename)))
+                                            <img src="{{ asset('document_upload/' . $attachment->filename) }}" alt="Attachment" style="width: 100px; height: 100px; object-fit: cover;">
+                                        @else
+                                            <div style="width: 100px; height: 100px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
+                                                <span style="font-size: 12px; text-align: center;">File not found</span>
+                                            </div>
+                                        @endif
+                                        <br>
+                                        <small>{{ $attachment->filename }}</small><br>
+                                        <input type="checkbox" name="delete_attachments[]" value="{{ $attachment->id }}"> Delete
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-muted">No attachments found for this hazard report.</p>
+                            <!-- Debug info - remove this in production -->
+                            <small class="text-info">Debug: Attachments count = {{ $attachments ? $attachments->count() : 'null' }}</small>
+                        @endif
                     </div>
                 </div>
                 

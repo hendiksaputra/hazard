@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\HazardResponseController;
 Route::get('/', function () {
     return view('welcome');
 });
+
 Route::get('/register', [RegisterController::class, 'index'])->name('index');
 Route::post('/store', [RegisterController::class, 'store'])->name('store');
 
